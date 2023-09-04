@@ -8,10 +8,17 @@ SHELL ["/bin/bash", "-c"]
 
 USER root
 
-RUN addgroup --system omnidb \
-    && adduser --system omnidb --ingroup omnidb \
-    && apt-get update \
-    && apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev vim -y
+RUN addgroup --system omnidb
+RUN adduser --system omnidb --ingroup omnidb
+RUN apt-get clean
+RUN apt-get update -y
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libsasl2-dev
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libldap2-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends libssl-dev
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends vim
+
+
 
 USER omnidb:omnidb
 ENV HOME /home/omnidb
@@ -21,6 +28,9 @@ RUN wget https://github.com/OmniDB/OmniDB/archive/${OMNIDB_VERSION}.tar.gz \
     && tar -xvzf ${OMNIDB_VERSION}.tar.gz \
     && mv OmniDB-${OMNIDB_VERSION} OmniDB
 
+# 修改requirements.txt文件来指定Django的版本
+RUN sed -i 's/Django.*/Django==3.2/' ${HOME}/OmniDB/requirements.txt
+
 WORKDIR ${HOME}/OmniDB
 
 RUN pip install -r requirements.txt
@@ -29,7 +39,7 @@ WORKDIR ${HOME}/OmniDB/OmniDB
 
 RUN sed -i "s/LISTENING_ADDRESS    = '127.0.0.1'/LISTENING_ADDRESS    = '0.0.0.0'/g" config.py \
     && python omnidb-server.py --init \
-    && python omnidb-server.py --dropuser=admin
+
 
 EXPOSE 8000
 
